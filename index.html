@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>⚡ Simulador de Tiempo de Compu</title>
+<!-- Simulador de tiempo de computadora · Archivo único autónomo · Funciona 100% sin internet -->
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#070a14;--bg1:#0c1226;--panel:#111832;--panel2:#0d1329;
+  --line:rgba(139,92,246,.35);--line2:rgba(168,85,247,.65);
+  --violet:#a855f7;--cyan:#22d3ee;--green:#4ade80;--yellow:#facc15;
+  --red:#ef4444;--pink:#f472b6;--orange:#fb923c;
+  --text:#e2e8f0;--muted:#93a2cc;
+  --mono:ui-monospace,"Cascadia Mono","Segoe UI Mono","Roboto Mono",Menlo,Consolas,monospace;
+}
+html{color-scheme:dark}
+body{
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  color:var(--text);min-height:100vh;
+  background:
+    radial-gradient(1100px 550px at 15% -8%,rgba(168,85,247,.16),transparent 60%),
+    radial-gradient(900px 500px at 95% 5%,rgba(34,211,238,.10),transparent 60%),
+    linear-gradient(180deg,var(--bg1),var(--bg0));
+  background-attachment:fixed;
+}
+.app{max-width:1080px;margin:0 auto;padding:22px 16px 46px}
+
+/* ---------- encabezado ---------- */
+header{display:flex;align-items:flex-start;gap:14px;justify-content:space-between}
+h1{
+  font-size:clamp(1.5rem,4.5vw,2.3rem);letter-spacing:1px;line-height:1.15;
+  color:var(--cyan);text-shadow:0 0 18px rgba(34,211,238,.55);
+}
+h1 span{color:var(--violet);text-shadow:0 0 18px rgba(168,85,247,.6)}
+.tagline{color:var(--muted);margin-top:6px;font-size:.95rem;max-width:62ch}
+.tagline b{color:var(--yellow)}
+.day{color:var(--yellow);font-size:.9rem;margin-top:5px;font-family:var(--mono)}
+#soundBtn{
+  flex:none;width:46px;height:46px;font-size:1.3rem;cursor:pointer;border-radius:12px;
+  background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--text);
+}
+#soundBtn:hover{border-color:var(--line2);box-shadow:0 0 14px rgba(168,85,247,.35)}
+
+/* ---------- fila jugador ---------- */
+.player{
+  display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;
+  margin-top:18px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;
+  background:linear-gradient(180deg,var(--panel),var(--panel2));
+}
+.player label{display:flex;gap:8px;align-items:center;font-size:.95rem;color:var(--muted)}
+#nameInput{
+  background:#0a0f22;border:1px solid var(--line);border-radius:10px;color:var(--text);
+  padding:9px 12px;font-size:1rem;width:220px;outline:none;
+}
+#nameInput:focus{border-color:var(--cyan);box-shadow:0 0 12px rgba(34,211,238,.3)}
+.mini-rules{color:var(--muted);font-size:.85rem}
+.mini-rules b{color:var(--cyan);font-family:var(--mono)}
+
+/* ---------- panel base ---------- */
+.dashboard{display:grid;grid-template-columns:340px 1fr;gap:18px;margin-top:18px}
+.panel{
+  border:1px solid var(--line);border-radius:16px;
+  background:linear-gradient(180deg,var(--panel),var(--panel2));
+  padding:16px;
+}
+
+/* ---------- monitor ---------- */
+.monitor{max-width:320px;margin:0 auto}
+.bezel{
+  position:relative;border:2px solid var(--line2);border-radius:18px;padding:12px 12px 24px;
+  background:linear-gradient(180deg,#151c3a,#0a0f22);
+  box-shadow:0 0 24px rgba(168,85,247,.28),inset 0 0 14px rgba(0,0,0,.6);
+}
+.screen{
+  position:relative;aspect-ratio:4/3;border-radius:10px;overflow:hidden;
+  background:#060913;display:flex;flex-direction:column;justify-content:center;align-items:center;
+  gap:6px;text-align:center;padding:12px;transition:background .5s;
+  box-shadow:inset 0 0 30px rgba(34,211,238,.12);
+}
+.screen::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(180deg,transparent 0 2px,rgba(0,0,0,.22) 2px 4px);
+}
+.screen.off{background:#020308;box-shadow:inset 0 0 40px rgba(239,68,68,.08)}
+.led{position:absolute;right:14px;bottom:7px;width:10px;height:10px;border-radius:50%}
+.led.on{background:var(--green);box-shadow:0 0 10px var(--green);animation:blink 2.4s infinite}
+.led.off{background:var(--red);box-shadow:0 0 10px var(--red)}
+.stand{width:64px;height:24px;margin:0 auto;background:linear-gradient(180deg,#151c3a,#0a0f22);border:1px solid var(--line);border-top:none}
+.base{width:150px;height:12px;margin:0 auto;border-radius:6px 6px 10px 10px;background:linear-gradient(180deg,#151c3a,#0a0f22);border:1px solid var(--line)}
+.scr-top{font-size:.72rem;letter-spacing:2px;color:var(--green);display:flex;align-items:center;gap:7px;font-family:var(--mono)}
+.scr-top.off{color:var(--red)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 1.4s infinite}
+.scr-hi{font-size:.8rem;color:var(--muted);letter-spacing:1px}
+.scr-label{font-size:.7rem;color:var(--cyan);letter-spacing:2.5px;margin-top:6px;font-family:var(--mono)}
+.scr-big{
+  font-family:var(--mono);font-size:clamp(1.4rem,4vw,2.2rem);font-weight:700;color:var(--green);
+  text-shadow:0 0 16px rgba(74,222,128,.55);font-variant-numeric:tabular-nums;max-width:100%;
+}
+.scr-big.off-big{color:var(--red);text-shadow:0 0 18px rgba(239,68,68,.6);animation:fadein .6s}
+.scr-pct{font-family:var(--mono);font-size:.72rem;color:var(--muted);letter-spacing:1px}
+.scr-sub{font-size:.8rem;color:#6b769c}
+.scr-hint{font-size:.72rem;color:var(--yellow);max-width:24ch}
+
+/* ---------- energía ---------- */
+.energy-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.energy-head span:first-child{font-size:.8rem;letter-spacing:2px;color:var(--muted);font-family:var(--mono)}
+#pctBig{font-family:var(--mono);font-size:2.1rem;font-weight:800;font-variant-numeric:tabular-nums}
+#pctBig.ok{color:var(--green);text-shadow:0 0 14px rgba(74,222,128,.5)}
+#pctBig.warn{color:var(--yellow);text-shadow:0 0 14px rgba(250,204,21,.5)}
+#pctBig.danger{color:var(--red);text-shadow:0 0 14px rgba(239,68,68,.6);animation:blink 1.2s infinite}
+.bar-track{
+  margin-top:10px;height:30px;border-radius:999px;position:relative;overflow:hidden;
+  background-color:#0a0f22;border:1px solid var(--line);
+  background-image:linear-gradient(90deg,rgba(147,162,204,.35) 0 2px,transparent 2px);
+  background-size:25% 100%;
+}
+.bar-fill{height:100%;width:0;border-radius:999px;transition:width .45s ease,background .4s}
+.bar-fill.ok{background:linear-gradient(90deg,#22d3ee,#4ade80);box-shadow:0 0 16px rgba(74,222,128,.5)}
+.bar-fill.warn{background:linear-gradient(90deg,#facc15,#fb923c);box-shadow:0 0 16px rgba(250,204,21,.5)}
+.bar-fill.danger{background:linear-gradient(90deg,#ef4444,#f472b6);box-shadow:0 0 18px rgba(239,68,68,.55)}
+.bar-legend{display:flex;justify-content:space-between;margin-top:6px;font-size:.72rem;color:var(--muted);font-family:var(--mono)}
+
+/* ---------- estadísticas ---------- */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px}
+.stat{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#0a0f22}
+.stat .lab{font-size:.68rem;letter-spacing:1.5px;color:var(--muted);font-family:var(--mono)}
+.stat .val{font-family:var(--mono);font-size:1.35rem;font-weight:700;margin-top:3px;font-variant-numeric:tabular-nums}
+.stat .sub{font-size:.7rem;color:var(--muted);margin-top:2px}
+.stat.c-cyan .val{color:var(--cyan)}
+.stat.c-green .val{color:var(--green)}
+.stat.c-yellow .val{color:var(--yellow)}
+.stat.c-pink .val{color:var(--pink)}
+
+/* ---------- mensaje de estado ---------- */
+.status{
+  margin-top:14px;padding:12px 14px;border-radius:12px;font-size:1rem;min-height:48px;
+  border:1px solid var(--line);border-left:4px solid var(--green);background:#0a0f22;
+}
+
+/* ---------- banner de apagado ---------- */
+.shutdown{
+  margin-top:14px;padding:16px;border-radius:14px;text-align:center;
+  border:1px solid rgba(239,68,68,.6);
+  background:linear-gradient(180deg,rgba(239,68,68,.14),rgba(239,68,68,.05));
+  box-shadow:0 0 24px rgba(239,68,68,.25);animation:fadein .5s;
+}
+.shutdown h2{color:var(--red);text-shadow:0 0 14px rgba(239,68,68,.6);font-size:1.3rem;letter-spacing:1px}
+.shutdown p{color:var(--text);margin-top:8px;font-size:.95rem}
+.shutdown p b{color:var(--yellow)}
+
+/* ---------- títulos de sección ---------- */
+h2.sec{margin:26px 0 12px;font-size:1.05rem;letter-spacing:1.5px;color:var(--cyan);text-shadow:0 0 12px rgba(34,211,238,.4)}
+
+/* ---------- tarjetas de actividades ---------- */
+.acts{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px}
+.card{
+  position:relative;border:1px solid var(--line);border-top:3px solid var(--c);
+  border-radius:14px;padding:14px;background:linear-gradient(180deg,var(--panel),var(--panel2));
+  display:flex;flex-direction:column;gap:9px;transition:transform .15s,border-color .2s,box-shadow .2s;
+}
+.card:hover{transform:translateY(-2px);border-color:var(--line2);box-shadow:0 6px 22px rgba(0,0,0,.35)}
+.card-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card-head .emoji{font-size:1.5rem}
+.card-head h3{font-size:.98rem;flex:1;min-width:0}
+.mult{
+  font-family:var(--mono);font-size:.72rem;font-weight:700;padding:3px 8px;border-radius:999px;
+  color:var(--c);border:1px solid var(--c);background:rgba(255,255,255,.05);
+}
+.rule{font-size:.8rem;color:var(--muted);line-height:1.45;flex:1}
+.chips{display:flex;gap:7px}
+.chip{
+  flex:1;padding:9px 0;font-family:var(--mono);font-weight:700;font-size:.9rem;cursor:pointer;
+  border-radius:10px;border:1px solid var(--c);color:var(--c);
+  background:rgba(255,255,255,.05);background:color-mix(in srgb,var(--c) 14%,transparent);
+  transition:box-shadow .15s,transform .1s;
+}
+.chip:hover{box-shadow:0 0 14px color-mix(in srgb,var(--c) 55%,transparent)}
+.chip:active{transform:translateY(1px)}
+.chip:disabled,.add-btn:disabled,.mins:disabled{opacity:.45;cursor:not-allowed}
+.custom-row{display:flex;gap:7px}
+.mins{
+  flex:1;min-width:0;background:#0a0f22;border:1px solid var(--line);border-radius:10px;color:var(--text);
+  padding:9px 10px;font-family:var(--mono);font-size:.9rem;outline:none;
+}
+.mins:focus{border-color:var(--c)}
+.mins.err{border-color:var(--red);animation:shake .4s}
+.add-btn{
+  padding:9px 12px;cursor:pointer;border-radius:10px;font-size:.85rem;font-weight:700;color:#08111f;
+  border:1px solid var(--c);background:var(--c);transition:filter .15s;white-space:nowrap;
+}
+.add-btn:hover{filter:brightness(1.15)}
+.card-foot{font-size:.82rem;color:var(--muted);border-top:1px dashed rgba(147,162,204,.25);padding-top:8px}
+.card-foot b{color:var(--cyan);font-family:var(--mono)}
+.card-foot b.good{color:var(--green)}
+.card.locked{opacity:.5}
+.card.locked .chips,.card.locked .custom-row{pointer-events:none;filter:grayscale(.7)}
+.card.rescue{border-color:rgba(74,222,128,.7);animation:glowPulse 1.8s infinite}
+.rescue-note{display:none;font-size:.75rem;color:var(--green);font-weight:700}
+.card.rescue .rescue-note{display:block}
+
+/* ---------- registro ---------- */
+.log-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:26px 0 10px}
+.log-actions{display:flex;gap:8px}
+.btn{
+  padding:9px 14px;border-radius:10px;cursor:pointer;font-size:.85rem;font-weight:700;color:var(--text);
+  background:rgba(255,255,255,.05);border:1px solid var(--line);transition:box-shadow .15s,border-color .15s;
+}
+.btn:hover{border-color:var(--line2);box-shadow:0 0 12px rgba(168,85,247,.3)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+#logList{list-style:none;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:linear-gradient(180deg,var(--panel),var(--panel2))}
+#logList li{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px dashed rgba(147,162,204,.18);font-size:.9rem}
+#logList li:last-child{border-bottom:none}
+#logList li.empty{color:var(--muted);justify-content:center}
+.lg-em{font-size:1.15rem}
+.lg-d{flex:1;min-width:0}
+.lg-r{font-family:var(--mono);font-size:.82rem;white-space:nowrap}
+.lg-r b.acc{color:var(--cyan)}
+.lg-r b.good{color:var(--green)}
+.lg-t{font-family:var(--mono);font-size:.75rem;color:var(--muted)}
+.lg-x{
+  flex:none;width:26px;height:26px;border-radius:8px;cursor:pointer;color:var(--red);
+  background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.4);font-size:.85rem;line-height:1;
+}
+.lg-x:hover{background:rgba(239,68,68,.25);box-shadow:0 0 10px rgba(239,68,68,.4)}
+
+/* ---------- modo adulto ---------- */
+details.adult{margin-top:18px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,var(--panel),var(--panel2));padding:6px 16px}
+details.adult summary{cursor:pointer;padding:12px 0;font-weight:700;color:var(--cyan);letter-spacing:.5px}
+details.adult summary:hover{text-shadow:0 0 10px rgba(34,211,238,.5)}
+.tbl-wrap{overflow-x:auto;padding-bottom:6px}
+table{width:100%;border-collapse:collapse;font-size:.88rem;min-width:520px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid rgba(147,162,204,.15)}
+th{color:var(--muted);font-size:.72rem;letter-spacing:1.5px;font-family:var(--mono)}
+td.num,th.num{text-align:right;font-family:var(--mono);white-space:nowrap}
+tr.sum td{color:var(--cyan);font-family:var(--mono);border-top:1px solid rgba(34,211,238,.25)}
+tr.sum td b{color:var(--green)}
+.rules{margin:12px 0 14px;padding-left:20px;color:var(--muted);font-size:.9rem;line-height:1.7}
+.rules b{color:var(--text)}
+
+footer{margin-top:26px;text-align:center;color:var(--muted);font-size:.8rem}
+.hidden{display:none!important}
+
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+@keyframes glowPulse{0%,100%{box-shadow:0 0 8px rgba(74,222,128,.25)}50%{box-shadow:0 0 22px rgba(74,222,128,.55)}}
+
+@media (max-width:880px){
+  .dashboard{grid-template-columns:1fr}
+  .monitor{max-width:300px}
+  .lg-t{display:none}
+  .player label{width:100%}
+  #nameInput{width:100%}
+}
+input[type=number]{-moz-appearance:textfield;appearance:textfield}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+::selection{background:rgba(168,85,247,.4)}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1>⚡ SIMULADOR <span>DE TIEMPO DE COMPU</span> ⚡</h1>
+      <p class="tagline">¿Cuánto podés usar la computadora hoy? Cargá lo que hiciste y mirá la energía: al llegar al límite de <b>5 horas</b>… ¡la compu se apaga sola!</p>
+      <p class="day" id="dayLabel">📅</p>
+    </div>
+    <button id="soundBtn" title="Activar o silenciar sonido" aria-pressed="true">🔊</button>
+  </header>
+
+  <section class="player">
+    <label for="nameInput">👤 Jugador:
+      <input id="nameInput" maxlength="20" placeholder="Tu nombre (opcional)" autocomplete="off">
+    </label>
+    <div class="mini-rules">🎮 online <b>×1,5</b> &nbsp;·&nbsp; 📚 tareas <b>10%</b> &nbsp;·&nbsp; 🌳 afuera <b>+0,25/min</b></div>
+  </section>
+
+  <section class="dashboard">
+    <div class="panel monitor-zone">
+      <div class="monitor">
+        <div class="bezel">
+          <div class="screen" id="screen" aria-live="polite"></div>
+          <div class="led on" id="led"></div>
+        </div>
+        <div class="stand"></div>
+        <div class="base"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="energy-head"><span>🔋 ENERGÍA DEL DÍA</span><span id="pctBig" class="ok">0%</span></div>
+      <div class="bar-track" id="barTrack" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Tiempo usado de la computadora"><div class="bar-fill ok" id="barFill"></div></div>
+      <div class="bar-legend"><span>0</span><span>LÍMITE: 5 h + bonus 🌳</span><span>APAGADO</span></div>
+
+      <div class="stat-grid">
+        <div class="stat c-cyan"><div class="lab">⏱ LÍMITE DE HOY</div><div class="val" id="statLimit">5 h</div><div class="sub" id="noteLimit">base fija 5 h</div></div>
+        <div class="stat c-pink"><div class="lab">🔥 USADO</div><div class="val" id="statUsed">0 min</div><div class="sub" id="noteUsed">0 actividades</div></div>
+        <div class="stat c-green"><div class="lab">⚡ DISPONIBLE</div><div class="val" id="statLeft">5 h</div><div class="sub" id="noteLeft">tiempo restante de hoy</div></div>
+        <div class="stat c-yellow"><div class="lab">🌳 BONUS GANADO</div><div class="val" id="statBonus">+0 min</div><div class="sub">por salir a jugar afuera</div></div>
+      </div>
+
+      <div class="status" id="statusMsg" aria-live="polite">😎 Tranqui: tenés 5 h disponibles.</div>
+
+      <div class="shutdown hidden" id="offBanner">
+        <h2 id="offTitle">🔌 ¡SE APAGÓ LA COMPUTADORA!</h2>
+        <p id="offText"></p>
+        <p style="margin-top:10px"><button class="btn" id="restartBtn">🔄 EMPEZAR UN NUEVO DÍA</button></p>
+      </div>
+    </div>
+  </section>
+
+  <h2 class="sec">📝 CARGÁ LO QUE HICISTE HOY</h2>
+  <section class="acts" id="acts"></section>
+
+  <div class="log-head">
+    <h2 class="sec" style="margin:0">📜 REGISTRO DEL DÍA</h2>
+    <div class="log-actions">
+      <button class="btn" id="undoBtn" disabled>↩ Deshacer último</button>
+      <button class="btn" id="resetBtn">🔄 Reiniciar el día</button>
+    </div>
+  </div>
+  <ul id="logList"></ul>
+
+  <details class="adult">
+    <summary>🔍 Modo adulto: cómo se calcula todo</summary>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>ACTIVIDAD</th><th class="num">TIEMPO REAL</th><th class="num">REGLA</th><th class="num">CUENTA COMO</th></tr></thead>
+        <tbody id="detailBody"></tbody>
+      </table>
+    </div>
+    <ul class="rules">
+      <li><b>🎬 Videos y 💬 chat:</b> cada minuto cuenta 1 a 1.</li>
+      <li><b>🎮 Jugar online:</b> el tiempo se multiplica ×1,5 → 1 hora de Roblox cuenta como 1 h 30 min.</li>
+      <li><b>📚 Tareas escolares en la compu:</b> solo cuenta el 10% → 30 min de tarea = 3 min de compu.</li>
+      <li><b>🌳 Salir a jugar afuera:</b> cada minuto afuera da 0,25 min de bonus → 60 min afuera = +15 min extra.</li>
+      <li><b>⏰ Límite:</b> 5 horas base (300 min). El límite real del día = 300 min + bonus ganado.</li>
+      <li><b>🔌 Apagado:</b> al alcanzar el límite, la compu se apaga. Pero si después ganás más bonus saliendo a jugar, ¡vuelve a encender!</li>
+    </ul>
+  </details>
+
+  <footer>⚡ Funciona 100% sin internet · Sin cuentas ni APIs · Los datos se guardan solo en este navegador</footer>
+</div>
+<noscript><p style="text-align:center;padding:20px">⚠️ Esta aplicación necesita JavaScript activado.</p></noscript>
+<script>
+'use strict';
+
+/* ================= Configuración ================= */
+const BASE_LIMIT = 300;        /* 5 horas = 300 minutos */
+const BONUS_PER_MIN = 0.25;    /* cada minuto afuera = +0,25 min de bonus */
+const CHIPS = [15, 30, 60];
+const LS_KEY = 'simuladorCompuV1';
+
+const ACTS = {
+  videos:{ emoji:'🎬', name:'Mirar videos o películas', mult:1,   multLabel:'×1',    color:'#22d3ee', desc:'Cada minuto mirando cuentas, series o videos suma tal cual.' },
+  chat:  { emoji:'💬', name:'Chatear o videollamar',    mult:1,   multLabel:'×1',    color:'#a855f7', desc:'Cada minuto de chat o videollamada suma tal cual.' },
+  online:{ emoji:'🎮', name:'Jugar online',             mult:1.5, multLabel:'×1,5',  color:'#f472b6', desc:'¡Ojo! Cada hora jugando online (Roblox, etc.) cuenta como 1 h 30 min.' },
+  tareas:{ emoji:'📚', name:'Tareas en la compu',        mult:0.1, multLabel:'10%',   color:'#4ade80', desc:'Solo cuenta el 10%: 30 min de tarea = 3 min de compu.' },
+  afuera:{ emoji:'🌳', name:'Salir a jugar afuera',     mult:0,   multLabel:'bonus', color:'#facc15', desc:'Cada minuto afuera te regala +0,25 min extra de compu.' }
+};
+const ORDER = ['videos','chat','online','tareas','afuera'];
+
+/* ================= Estado ================= */
+let state = { name:'', sound:true, entries:[] };
+let uid = 0;
+let flashData = null, flashTimer = null;
+
+/* ================= Utilidades ================= */
+const $ = id => document.getElementById(id);
+const round2 = x => Math.round(x * 100) / 100;
+function trimNum(v){
+  v = round2(v);
+  return Number.isInteger(v) ? String(v) : v.toFixed(2).replace(/0+$/,'').replace(/\.$/,'').replace('.',',');
+}
+function fmtMins(m){
+  m = round2(m);
+  if(m < 60) return trimNum(m) + ' min';
+  const h = Math.floor(m / 60), r = round2(m - h * 60);
+  return r > 0 ? h + ' h ' + trimNum(r) + ' min' : h + ' h';
+}
+function esc(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function entryCounted(type, mins){ return type === 'afuera' ? 0 : round2(mins * ACTS[type].mult); }
+function entryBonus(type, mins){ return type === 'afuera' ? round2(mins * BONUS_PER_MIN) : 0; }
+
+function totals(){
+  let used = 0, bonus = 0;
+  const byType = {};
+  for(const e of state.entries){
+    used += entryCounted(e.type, e.mins);
+    bonus += entryBonus(e.type, e.mins);
+    byType[e.type] = round2((byType[e.type] || 0) + e.mins);
+  }
+  used = round2(used); bonus = round2(bonus);
+  const limit = round2(BASE_LIMIT + bonus);
+  return { used, bonus, limit, left: round2(limit - used), byType, off: used >= limit };
+}
+
+/* ================= Guardado local ================= */
+function save(){
+  try{
+    localStorage.setItem(LS_KEY, JSON.stringify({
+      v:1, name:state.name, sound:state.sound,
+      entries:state.entries.map(e => ({ t:e.type, m:e.mins, ts:e.ts }))
+    }));
+  }catch(err){}
+}
+function load(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return;
+    const d = JSON.parse(raw);
+    if(!d || d.v !== 1) return;
+    state.name = typeof d.name === 'string' ? d.name.slice(0,20) : '';
+    state.sound = d.sound !== false;
+    state.entries = (Array.isArray(d.entries) ? d.entries : [])
+      .filter(e => ACTS[e.t] && isFinite(e.m) && +e.m > 0)
+      .map(e => ({ id:++uid, type:e.t, mins:round2(+e.m), ts:+e.ts || Date.now() }));
+  }catch(err){}
+}
+
+/* ================= Sonido (WebAudio local) ================= */
+let actx = null;
+function tone(freq, dur, delay, type, vol){
+  try{
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type || 'square';
+    o.frequency.value = freq;
+    o.connect(g); g.connect(actx.destination);
+    const t0 = actx.currentTime + (delay || 0);
+    const v = vol || 0.06;
+    g.gain.setValueAtTime(v, t0);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.start(t0); o.stop(t0 + dur + 0.02);
+  }catch(err){}
+}
+function playOff(){ if(state.sound){ tone(392,.18,0,'square',.07); tone(262,.4,.18,'sawtooth',.07); } }
+function playOn(){ if(state.sound){ tone(330,.12,0,'square',.05); tone(494,.12,.12,'square',.05); tone(659,.28,.24,'square',.05); } }
+
+/* ================= Mensajes momentáneos ================= */
+function flash(text, color){
+  flashData = { text, color, until: Date.now() + 4200 };
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(render, 4400);
+}
+
+/* ================= Mutaciones con detección de encendido/apagado ================= */
+function mutate(fn){
+  const wasOff = totals().off;
+  fn();
+  const isOff = totals().off;
+  if(isOff && !wasOff) playOff();
+  if(!isOff && wasOff) playOn();
+  save();
+  render();
+}
+
+function addActivity(type, mins){
+  if(!ACTS[type]) return;
+  mins = round2(mins);
+  if(!(mins > 0) || mins > 720) return;
+  const a = ACTS[type];
+  mutate(() => {
+    state.entries.push({ id:++uid, type, mins, ts:Date.now() });
+    const t = totals();
+    if(t.off){
+      flash('🔌 ¡Llegaste al límite! La compu se apagó', '#ef4444');
+    } else if(type === 'afuera'){
+      flash(`🌳 ¡Bonus! Ganaste +${fmtMins(entryBonus(type, mins))} extra de compu`, '#facc15');
+    } else {
+      flash(`${a.emoji} Sumaste ${fmtMins(mins)} → cuenta como ${fmtMins(entryCounted(type, mins))}`, '#4ade80');
+    }
+  });
+}
+
+function removeEntry(id){
+  const i = state.entries.findIndex(x => String(x.id) === String(id));
+  if(i < 0) return;
+  const e = state.entries[i];
+  const a = ACTS[e.type];
+  mutate(() => {
+    state.entries.splice(i, 1);
+    flash(`🗑️ Borraste ${a.emoji} ${a.name} (${fmtMins(e.mins)})`, '#facc15');
+  });
+}
+
+function resetDay(){
+  const n = state.name.trim();
+  if(!confirm('¿Borrar todo y empezar un día nuevo' + (n ? ' para ' + n : '') + '?')) return;
+  mutate(() => {
+    state.entries = [];
+    flash('🔄 ¡Nuevo día! La compu está como nueva', '#22d3ee');
+  });
+}
+
+/* ================= Construcción de tarjetas ================= */
+function buildCards(){
+  $('acts').innerHTML = ORDER.map(k => {
+    const a = ACTS[k];
+    const chips = CHIPS.map(m => `<button class="chip" data-type="${k}" data-min="${m}">${m === 60 ? '+1 h' : '+' + m}</button>`).join('');
+    const note = k === 'afuera' ? '<div class="rescue-note">⚡ La compu está apagada: cargá minutos afuera y ganá bonus para revivirla</div>' : '';
+    return `<article class="card" data-card="${k}" style="--c:${a.color}">
+      <div class="card-head"><span class="emoji">${a.emoji}</span><h3>${a.name}</h3><span class="mult">${a.multLabel}</span></div>
+      <p class="rule">${a.desc}</p>
+      <div class="chips">${chips}</div>
+      <div class="custom-row">
+        <input type="number" class="mins" data-type="${k}" min="1" max="720" placeholder="minutos" aria-label="Minutos personalizados: ${a.name}">
+        <button class="add-btn" data-type="${k}">➕ Agregar</button>
+      </div>
+      ${note}
+      <div class="card-foot" data-foot="${k}">Todavía no cargaste nada.</div>
+    </article>`;
+  }).join('');
+}
+
+/* ================= Render general ================= */
+function render(){
+  const t = totals();
+  const name = state.name.trim().slice(0, 20);
+  const N = esc(name.toUpperCase());
+
+  /* --- pantalla de la compu --- */
+  const scr = $('screen'), led = $('led');
+  if(t.off){
+    scr.classList.add('off');
+    led.classList.remove('on'); led.classList.add('off');
+    scr.innerHTML =
+      '<div class="scr-top off">⛔ SIN ENERGÍA</div>' +
+      '<div class="scr-big off-big">APAGADA</div>' +
+      '<div class="scr-sub">Alcanzaste el límite de hoy</div>' +
+      '<div class="scr-hint">🌳 Salí a jugar afuera y ganá bonus para volver a encenderla</div>';
+  } else {
+    scr.classList.remove('off');
+    led.classList.add('on'); led.classList.remove('off');
+    const pct = Math.round(t.used / t.limit * 100);
+    scr.innerHTML =
+      '<div class="scr-top"><span class="dot"></span>EN LÍNEA</div>' +
+      `<div class="scr-hi">${name ? 'HOLA, ' + N + ' 👋' : 'MODO JUEGO 👾'}</div>` +
+      '<div class="scr-label">TIEMPO DISPONIBLE</div>' +
+      `<div class="scr-big">${fmtMins(t.left)}</div>` +
+      `<div class="scr-pct">USADO ${pct}% · LÍMITE ${fmtMins(t.limit)}</div>`;
+  }
+
+  /* --- barra de energía --- */
+  const r = t.used / t.limit;
+  const cls = (t.off || r >= .9) ? 'danger' : (r >= .7 ? 'warn' : 'ok');
+  $('barFill').style.width = Math.min(100, r * 100) + '%';
+  $('barFill').className = 'bar-fill ' + cls;
+  const pb = $('pctBig');
+  pb.textContent = Math.round(r * 100) + '%';
+  pb.className = cls;
+  $('barTrack').setAttribute('aria-valuenow', String(Math.round(r * 100)));
+
+  /* --- estadísticas --- */
+  $('statLimit').textContent = fmtMins(t.limit);
+  $('noteLimit').textContent = t.bonus > 0 ? 'base 5 h + bonus 🌳' : 'base fija 5 h';
+  $('statUsed').textContent = fmtMins(t.used);
+  $('noteUsed').textContent = state.entries.length + (state.entries.length === 1 ? ' actividad cargada' : ' actividades cargadas');
+  $('statLeft').textContent = fmtMins(Math.max(0, t.left));
+  $('noteLeft').textContent = t.off ? '⛔ se alcanzó el límite' : (r >= .7 ? '¡se viene el final!' : 'tiempo restante de hoy');
+  $('statBonus').textContent = '+' + fmtMins(t.bonus);
+
+  /* --- tarjetas: bloqueo y pies --- */
+  for(const k of ORDER){
+    const card = document.querySelector('[data-card="' + k + '"]');
+    if(!card) continue;
+    const locked = t.off && k !== 'afuera';
+    card.classList.toggle('locked', locked);
+    card.classList.toggle('rescue', t.off && k === 'afuera');
+    card.querySelectorAll('button, input').forEach(el => { el.disabled = locked; });
+    const foot = card.querySelector('[data-foot]');
+    const mins = t.byType[k] || 0;
+    if(!mins) foot.innerHTML = 'Todavía no cargaste nada.';
+    else if(k === 'afuera') foot.innerHTML = `Hoy afuera: <b>${fmtMins(mins)}</b> → bonus <b class="good">+${fmtMins(entryBonus(k, mins))}</b>`;
+    else foot.innerHTML = `Hoy: <b>${fmtMins(mins)}</b> → cuenta <b>${fmtMins(entryCounted(k, mins))}</b>`;
+  }
+
+  /* --- registro del día --- */
+  const list = [...state.entries].reverse().map(e => {
+    const a = ACTS[e.type];
+    const res = e.type === 'afuera'
+      ? `<b class="good">+${fmtMins(entryBonus(e.type, e.mins))} bonus</b>`
+      : `<b class="acc">${fmtMins(entryCounted(e.type, e.mins))}</b>`;
+    const hhmm = new Date(e.ts).toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit' });
+    return `<li><span class="lg-em">${a.emoji}</span><span class="lg-d">${a.name} · ${fmtMins(e.mins)}</span><span class="lg-r">→ ${res}</span><span class="lg-t">${hhmm}</span><button class="lg-x" data-id="${e.id}" title="Borrar esta actividad" aria-label="Borrar actividad">✕</button></li>`;
+  }).join('');
+  $('logList').innerHTML = list || '<li class="empty">Todavía no cargaste nada hoy. ¡Empezá con lo que hiciste! 🙂</li>';
+  $('undoBtn').disabled = !state.entries.length;
+
+  /* --- banner de apagado --- */
+  $('offBanner').classList.toggle('hidden', !t.off);
+  if(t.off){
+    $('offTitle').textContent = name ? `¡${N}, SE APAGÓ LA COMPUTADORA!` : '¡SE APAGÓ LA COMPUTADORA!';
+    $('offText').innerHTML = `Usaste <b>${fmtMins(t.used)}</b> de tu límite de hoy: <b>${fmtMins(t.limit)}</b>.` +
+      (t.bonus > 0 ? ` (incluye <b>+${fmtMins(t.bonus)}</b> de bonus 🌳)` : '');
+  }
+
+  /* --- mensaje de estado --- */
+  let msg, color;
+  if(t.off){ msg = `🔌 ¡Se apagó la compu! Usaste ${fmtMins(t.used)} de ${fmtMins(t.limit)}.`; color = '#ef4444'; }
+  else if(r >= .9){ msg = `😬 ¡Últimos ${fmtMins(t.left)}! Está por apagarse.`; color = '#ef4444'; }
+  else if(r >= .7){ msg = `⚠️ Ojo: solo te quedan ${fmtMins(t.left)}.`; color = '#fb923c'; }
+  else if(r >= .4){ msg = `🙂 Vas bien: quedan ${fmtMins(t.left)} de juego.`; color = '#facc15'; }
+  else { msg = `${name ? '¡Hola, ' + esc(name) + '! ' : ''}😎 Tranqui: tenés ${fmtMins(t.left)} disponibles.`; color = '#4ade80'; }
+  if(flashData && Date.now() < flashData.until){ msg = flashData.text; color = flashData.color; }
+  const st = $('statusMsg');
+  st.textContent = msg;
+  st.style.borderLeftColor = color;
+
+  /* --- modo adulto: detalle del cálculo --- */
+  const rows = ORDER.map(k => {
+    const a = ACTS[k];
+    const m = t.byType[k] || 0;
+    const cuenta = (m && k !== 'afuera') ? fmtMins(entryCounted(k, m)) : '—';
+    return `<tr><td>${a.emoji} ${a.name}</td><td class="num">${m ? fmtMins(m) : '—'}</td><td class="num">${a.multLabel}</td><td class="num">${cuenta}</td></tr>`;
+  }).join('');
+  const over = round2(t.used - t.limit);
+  const sum =
+    `<tr class="sum"><td>🌳 Bonus ganado</td><td class="num" colspan="3">+${fmtMins(t.bonus)} extra</td></tr>` +
+    `<tr class="sum"><td>⏱ Límite de hoy</td><td class="num" colspan="3">${fmtMins(BASE_LIMIT)} base + ${fmtMins(t.bonus)} bonus = <b>${fmtMins(t.limit)}</b></td></tr>` +
+    `<tr class="sum"><td>🔥 Total usado</td><td class="num" colspan="3">${fmtMins(t.used)}</td></tr>` +
+    `<tr class="sum"><td>${t.off ? '⛔ Estado' : '⚡ Disponible'}</td><td class="num" colspan="3">${t.off ? (over > 0 ? 'APAGADA — te pasaste por ' + fmtMins(over) : 'APAGADA — justo en el límite') : fmtMins(t.left)}</td></tr>`;
+  $('detailBody').innerHTML = rows + sum;
+}
+
+/* ================= Carga personalizada ================= */
+function tryCustom(inp){
+  if(!inp) return;
+  const v = parseFloat(String(inp.value).replace(',', '.'));
+  if(isFinite(v) && v > 0 && v <= 720){
+    addActivity(inp.dataset.type, v);
+    inp.value = '';
+  } else {
+    inp.classList.remove('err');
+    void inp.offsetWidth;
+    inp.classList.add('err');
+  }
+}
+
+/* ================= Inicio ================= */
+function init(){
+  buildCards();
+  load();
+  $('nameInput').value = state.name;
+  const sb = $('soundBtn');
+  sb.textContent = state.sound ? '🔊' : '🔇';
+  sb.setAttribute('aria-pressed', String(state.sound));
+  const ds = new Date().toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' });
+  $('dayLabel').textContent = '📅 ' + ds.charAt(0).toUpperCase() + ds.slice(1);
+  render();
+
+  const acts = $('acts');
+  acts.addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if(!b || b.disabled) return;
+    if(b.classList.contains('chip')){
+      addActivity(b.dataset.type, +b.dataset.min);
+    } else if(b.classList.contains('add-btn')){
+      const inp = acts.querySelector('.mins[data-type="' + b.dataset.type + '"]');
+      tryCustom(inp);
+    }
+  });
+  acts.addEventListener('keydown', e => {
+    if(e.key === 'Enter' && e.target.classList && e.target.classList.contains('mins')){
+      e.preventDefault();
+      tryCustom(e.target);
+    }
+  });
+
+  $('nameInput').addEventListener('input', e => {
+    state.name = e.target.value.slice(0, 20);
+    save();
+    render();
+  });
+
+  sb.addEventListener('click', () => {
+    state.sound = !state.sound;
+    sb.textContent = state.sound ? '🔊' : '🔇';
+    sb.setAttribute('aria-pressed', String(state.sound));
+    if(state.sound) playOn();
+    save();
+  });
+
+  $('undoBtn').addEventListener('click', () => {
+    if(!state.entries.length) return;
+    const e = state.entries[state.entries.length - 1];
+    const a = ACTS[e.type];
+    mutate(() => {
+      state.entries.pop();
+      flash(`↩ Quitaste ${a.emoji} ${a.name} (${fmtMins(e.mins)})`, '#facc15');
+    });
+  });
+
+  $('resetBtn').addEventListener('click', resetDay);
+  $('restartBtn').addEventListener('click', resetDay);
+
+  $('logList').addEventListener('click', e => {
+    const b = e.target.closest('.lg-x');
+    if(b) removeEntry(b.dataset.id);
+  });
+}
+
+init();
+</script>
+</body>
+</html>
